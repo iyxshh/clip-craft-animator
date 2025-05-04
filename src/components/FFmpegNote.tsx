@@ -17,6 +17,7 @@ const FFmpegNote = () => {
         </p>
         <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
           <li>All processing happens locally - your files never leave your computer</li>
+          <li>Modern browsers (Chrome, Edge, Firefox) with SharedArrayBuffer support are required</li>
           <li>Complex operations may take time depending on your device's capabilities</li>
           <li>For best results with image sequences, number files sequentially (e.g., img001.jpg, img002.jpg)</li>
           <li>Supported codecs and formats depend on FFmpeg.wasm capabilities</li>
