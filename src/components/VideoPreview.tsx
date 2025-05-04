@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Download, Video } from "lucide-react";
+import { Play, Download, Video, Laptop, Cloud } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
@@ -11,9 +11,16 @@ interface VideoPreviewProps {
   isProcessed: boolean;
   isProcessing?: boolean;
   processingProgress?: number;
+  processingMode?: string;
 }
 
-const VideoPreview = ({ videoUrl, isProcessed, isProcessing = false, processingProgress = 0 }: VideoPreviewProps) => {
+const VideoPreview = ({ 
+  videoUrl, 
+  isProcessed, 
+  isProcessing = false, 
+  processingProgress = 0,
+  processingMode = "local" 
+}: VideoPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const { toast } = useToast();
@@ -59,7 +66,17 @@ const VideoPreview = ({ videoUrl, isProcessed, isProcessing = false, processingP
           <div className="flex flex-col items-center justify-center bg-black/20 aspect-video rounded-md p-4">
             <Video className="h-16 w-16 text-primary animate-pulse mb-4" />
             <p className="text-muted-foreground text-center mb-4">
-              Processing your video...
+              {processingMode === "cloud" ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Cloud className="h-4 w-4" />
+                  Processing in cloud...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  <Laptop className="h-4 w-4" />
+                  Processing locally...
+                </span>
+              )}
             </p>
             <Progress value={processingProgress} className="w-full max-w-md" />
             <p className="text-xs text-muted-foreground mt-2">{processingProgress}% complete</p>

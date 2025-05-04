@@ -1,10 +1,11 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Info, AlertTriangle, ExternalLink } from "lucide-react";
+import { Info, AlertTriangle, ExternalLink, Cloud } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ffmpegService } from "@/services/ffmpegService";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const FFmpegNote = () => {
   const [isCompatible, setIsCompatible] = useState<boolean | null>(null);
@@ -20,58 +21,93 @@ const FFmpegNote = () => {
   };
 
   return (
-    <Card className={`mt-8 ${isCompatible === false ? 'bg-destructive/10 border-destructive/20' : 'bg-primary/5 border-primary/20'}`}>
+    <Card className="mt-8">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          {isCompatible === false ? (
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-          ) : (
-            <Info className="h-4 w-4" />
-          )}
-          FFmpeg Processing Note
+          <Info className="h-4 w-4" />
+          Video Processing Information
         </CardTitle>
       </CardHeader>
       <CardContent className="text-sm">
-        {isCompatible === false && (
-          <Alert variant="destructive" className="mb-3">
-            <AlertTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Browser Compatibility Issue
-            </AlertTitle>
-            <AlertDescription className="mt-2">
-              <p className="mb-2">
-                Your browser doesn't support <strong>SharedArrayBuffer</strong> which is required for FFmpeg.wasm to work.
+        <Tabs defaultValue={isCompatible ? "local" : "cloud"}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="local">Local Processing</TabsTrigger>
+            <TabsTrigger value="cloud">Cloud Processing</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="local">
+            {isCompatible === false && (
+              <Alert variant="destructive" className="mb-3">
+                <AlertTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Browser Compatibility Issue
+                </AlertTitle>
+                <AlertDescription className="mt-2">
+                  <p className="mb-2">
+                    Your browser doesn't support <strong>SharedArrayBuffer</strong> which is required for FFmpeg.wasm to work locally.
+                  </p>
+                  <p className="mb-3">
+                    Please try one of these solutions:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Use Chrome, Edge, or Firefox (latest versions)</li>
+                    <li>Enable "cross-origin isolation" if using a compatible browser</li>
+                    <li><strong>Use our cloud processing option instead</strong></li>
+                  </ul>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3"
+                    onClick={handleOpenCompatibleBrowser}
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    Learn More
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            <p className="mb-2">
+              Local processing uses FFmpeg.wasm to process videos entirely in your browser:
+            </p>
+            <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+              <li>All processing happens locally - your files never leave your computer</li>
+              <li>Modern browsers (Chrome, Edge, Firefox) with SharedArrayBuffer support are required</li>
+              <li>Complex operations may take time depending on your device's capabilities</li>
+              <li>For best results with image sequences, number files sequentially (e.g., img001.jpg, img002.jpg)</li>
+              <li>Supported codecs and formats depend on FFmpeg.wasm capabilities</li>
+            </ul>
+          </TabsContent>
+          
+          <TabsContent value="cloud">
+            <div className="flex items-start gap-2 mb-3">
+              <Cloud className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-medium">Cloud Processing (Alternative Option)</h4>
+                <p className="text-muted-foreground mt-1">
+                  When your browser doesn't support local processing, our cloud option offers a reliable alternative:
+                </p>
+              </div>
+            </div>
+            
+            <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+              <li>Works in all browsers, regardless of SharedArrayBuffer support</li>
+              <li>Processing happens on remote servers, not your device</li>
+              <li>Can handle more complex operations regardless of your device's capabilities</li>
+              <li>May take longer for large files due to upload/download time</li>
+              <li>Still supports all FFmpeg commands and features</li>
+            </ul>
+            
+            <div className="mt-4 bg-primary/5 p-3 rounded-md border border-primary/20">
+              <p className="text-sm font-medium">Note: For demo purposes</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                The cloud processing in this demo is simulated and will return your original file. 
+                In a production environment, this would connect to an actual FFmpeg processing service.
               </p>
-              <p className="mb-3">
-                Please try one of these solutions:
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Use Chrome, Edge, or Firefox (latest versions)</li>
-                <li>Enable "cross-origin isolation" if using a compatible browser</li>
-              </ul>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-3"
-                onClick={handleOpenCompatibleBrowser}
-              >
-                <ExternalLink className="w-3 h-3 mr-1" />
-                Learn More
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+            </div>
+          </TabsContent>
+        </Tabs>
         
-        <p className="mb-2">
-          This web app uses FFmpeg.wasm to process videos entirely in your browser:
-        </p>
-        <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-          <li>All processing happens locally - your files never leave your computer</li>
-          <li>Modern browsers (Chrome, Edge, Firefox) with SharedArrayBuffer support are required</li>
-          <li>Complex operations may take time depending on your device's capabilities</li>
-          <li>For best results with image sequences, number files sequentially (e.g., img001.jpg, img002.jpg)</li>
-          <li>Supported codecs and formats depend on FFmpeg.wasm capabilities</li>
-        </ul>
         <p className="mt-4 text-xs text-muted-foreground">
           FFmpeg Script Tips:
           <code className="block bg-muted p-2 rounded mt-1 text-[10px] overflow-x-auto">

@@ -2,12 +2,13 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { Edit, AlertTriangle } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import { Edit, AlertTriangle, Cloud, Laptop } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ScriptEditorProps {
   onScriptChange: (script: string) => void;
-  onProcessVideo: () => void;
+  onProcessVideo: (useCloudProcessing?: boolean) => void;
   isProcessing: boolean;
   isCompatible?: boolean | null;
 }
@@ -16,6 +17,7 @@ const ScriptEditor = ({ onScriptChange, onProcessVideo, isProcessing, isCompatib
   const [script, setScript] = useState<string>(
     "# Example FFmpeg command\n-i input.mp4 -vf \"scale=1280:720,setsar=1:1\" -c:v libx264 -crf 23 -preset medium -c:a aac -b:a 128k output.mp4"
   );
+  const [processingMode, setProcessingMode] = useState<"local" | "cloud">(isCompatible ? "local" : "cloud");
   const { toast } = useToast();
 
   const handleScriptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -33,7 +35,11 @@ const ScriptEditor = ({ onScriptChange, onProcessVideo, isProcessing, isCompatib
   };
 
   const lineNumbers = script.split('\n').map((_, i) => i + 1).join('\n');
-  const isButtonDisabled = isProcessing || isCompatible === false;
+  const isLocalProcessingDisabled = isProcessing || isCompatible === false;
+
+  const handleProcessVideo = () => {
+    onProcessVideo(processingMode === "cloud");
+  };
 
   return (
     <Card className="w-full">
@@ -85,26 +91,69 @@ const ScriptEditor = ({ onScriptChange, onProcessVideo, isProcessing, isCompatib
           </Button>
         </div>
       </CardContent>
-      <CardFooter>
-        <Button 
-          onClick={onProcessVideo} 
-          className="w-full" 
-          disabled={isButtonDisabled}
+      <CardFooter className="flex-col space-y-4">
+        <Tabs 
+          defaultValue={processingMode} 
+          className="w-full"
+          onValueChange={(value) => setProcessingMode(value as "local" | "cloud")}
         >
-          {isProcessing ? (
-            <>
-              <span className="animate-spin mr-2">◌</span>
-              Processing...
-            </>
-          ) : isCompatible === false ? (
-            <>
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Browser Not Compatible
-            </>
-          ) : (
-            <>Process Video</>
-          )}
-        </Button>
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger 
+              value="local" 
+              disabled={isCompatible === false}
+              className="flex items-center gap-2"
+            >
+              <Laptop className="h-4 w-4" />
+              Local Processing
+            </TabsTrigger>
+            <TabsTrigger 
+              value="cloud"
+              className="flex items-center gap-2"
+            >
+              <Cloud className="h-4 w-4" />
+              Cloud Processing
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="local" className="mt-0">
+            {isCompatible === false && (
+              <div className="bg-destructive/10 text-destructive rounded-md p-3 mb-4 text-sm flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <p>Your browser doesn't support local processing. Please use cloud processing instead.</p>
+              </div>
+            )}
+            <Button 
+              onClick={handleProcessVideo} 
+              className="w-full" 
+              disabled={isLocalProcessingDisabled}
+            >
+              {isProcessing ? (
+                <>
+                  <span className="animate-spin mr-2">◌</span>
+                  Processing...
+                </>
+              ) : (
+                <>Process Video Locally</>
+              )}
+            </Button>
+          </TabsContent>
+          <TabsContent value="cloud" className="mt-0">
+            <Button 
+              onClick={handleProcessVideo} 
+              className="w-full" 
+              disabled={isProcessing}
+              variant="secondary"
+            >
+              {isProcessing ? (
+                <>
+                  <span className="animate-spin mr-2">◌</span>
+                  Processing...
+                </>
+              ) : (
+                <>Process Video in Cloud</>
+              )}
+            </Button>
+          </TabsContent>
+        </Tabs>
       </CardFooter>
     </Card>
   );

@@ -7,6 +7,7 @@ import VideoPreview from "@/components/VideoPreview";
 import FFmpegNote from "@/components/FFmpegNote";
 import { useToast } from "@/hooks/use-toast";
 import { ffmpegService } from "@/services/ffmpegService";
+import { cloudProcessingService } from "@/services/cloudProcessingService";
 
 const Index = () => {
   const [uploadedMedia, setUploadedMedia] = useState<File[]>([]);
@@ -16,6 +17,7 @@ const Index = () => {
   const [isProcessed, setIsProcessed] = useState<boolean>(false);
   const [processingProgress, setProcessingProgress] = useState<number>(0);
   const [isCompatible, setIsCompatible] = useState<boolean | null>(null);
+  const [processingMode, setProcessingMode] = useState<string>("local");
   
   const { toast } = useToast();
 
@@ -38,14 +40,18 @@ const Index = () => {
     setFfmpegScript(script);
   };
 
-  const handleProcessVideo = async () => {
-    if (!isCompatible) {
+  const handleProcessVideo = async (useCloudProcessing = false) => {
+    // Update processing mode
+    setProcessingMode(useCloudProcessing ? "cloud" : "local");
+    
+    if (!useCloudProcessing && !isCompatible) {
       toast({
         title: "Browser Compatibility Issue",
-        description: "Your browser doesn't support SharedArrayBuffer which is required for FFmpeg. Try using Chrome or Edge.",
+        description: "Your browser doesn't support SharedArrayBuffer which is required for local FFmpeg processing. Switching to cloud processing.",
         variant: "destructive",
       });
-      return;
+      // Force cloud processing if local is not supported
+      useCloudProcessing = true;
     }
     
     if (uploadedMedia.length === 0) {
@@ -70,23 +76,49 @@ const Index = () => {
     setProcessingProgress(0);
     
     try {
-      // Load FFmpeg with progress updates
-      toast({
-        title: "Loading FFmpeg",
-        description: "Please wait while FFmpeg is being initialized...",
-      });
-      await ffmpegService.load();
-      setProcessingProgress(20);
-
-      // Process the media
-      toast({
-        title: "Processing Started",
-        description: "FFmpeg is processing your media. This may take a moment...",
-      });
+      let outputBlob: Blob;
       
-      // Process the video
-      const outputBlob = await ffmpegService.processMedia(uploadedMedia, ffmpegScript);
-      setProcessingProgress(90);
+      if (useCloudProcessing) {
+        // Use cloud processing
+        toast({
+          title: "Cloud Processing Started",
+          description: "Your media is being processed in the cloud. This may take a moment...",
+        });
+        
+        // Simulate progress updates for cloud processing
+        const progressInterval = setInterval(() => {
+          setProcessingProgress(prev => {
+            const newProgress = prev + 10;
+            if (newProgress >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return newProgress;
+          });
+        }, 500);
+        
+        // Process via cloud service
+        outputBlob = await cloudProcessingService.processMedia(uploadedMedia, ffmpegScript);
+        clearInterval(progressInterval);
+        setProcessingProgress(100);
+      } else {
+        // Use local processing with FFmpeg.wasm
+        toast({
+          title: "Loading FFmpeg",
+          description: "Please wait while FFmpeg is being initialized...",
+        });
+        await ffmpegService.load();
+        setProcessingProgress(20);
+
+        toast({
+          title: "Local Processing Started",
+          description: "FFmpeg is processing your media. This may take a moment...",
+        });
+        
+        // Process the video locally
+        outputBlob = await ffmpegService.processMedia(uploadedMedia, ffmpegScript);
+        setProcessingProgress(90);
+      }
       
       // Create URL for the processed video
       const url = URL.createObjectURL(outputBlob);
@@ -96,7 +128,7 @@ const Index = () => {
       
       toast({
         title: "Processing Complete",
-        description: "Your video has been processed. You can now preview and download it.",
+        description: `Your video has been processed ${useCloudProcessing ? 'in the cloud' : 'locally'}. You can now preview and download it.`,
       });
     } catch (error) {
       console.error("Error processing video:", error);
@@ -129,6 +161,7 @@ const Index = () => {
           isProcessed={isProcessed}
           isProcessing={isProcessing}
           processingProgress={processingProgress}
+          processingMode={processingMode}
         />
         
         <FFmpegNote />
