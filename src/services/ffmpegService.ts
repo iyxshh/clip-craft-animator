@@ -12,8 +12,9 @@ class FFmpegService {
     this.ffmpeg = new FFmpeg();
     
     try {
-      // Load FFmpeg WASM binary
-      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd';
+      // Use CDN for FFmpeg core files - this is more reliable than unpkg
+      const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.4/dist/umd';
+      
       await this.ffmpeg.load({
         coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
         wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),

@@ -55,7 +55,21 @@ const Index = () => {
     setProcessingProgress(0);
     
     try {
-      // Load FFmpeg
+      // Check for SharedArrayBuffer support
+      if (typeof SharedArrayBuffer === 'undefined') {
+        toast({
+          title: "Browser Compatibility Issue",
+          description: "Your browser doesn't support SharedArrayBuffer which is required for FFmpeg. Try using Chrome or Edge.",
+          variant: "destructive",
+        });
+        throw new Error("Browser doesn't support SharedArrayBuffer");
+      }
+      
+      // Load FFmpeg with progress updates
+      toast({
+        title: "Loading FFmpeg",
+        description: "Please wait while FFmpeg is being initialized...",
+      });
       await ffmpegService.load();
       setProcessingProgress(20);
 
