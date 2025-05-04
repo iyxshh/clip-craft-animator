@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -24,6 +25,16 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				editor: {
+					bg: '#1e1e2e',
+					text: '#f8f8f2',
+					line: '#44475a',
+					comment: '#6272a4',
+					keyword: '#ff79c6',
+					function: '#50fa7b',
+					string: '#f1fa8c',
+					variable: '#bd93f9',
+				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'
@@ -70,25 +81,27 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				'pulse': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.5' }
+				},
+				'spin': {
+					from: { transform: 'rotate(0deg)' },
+					to: { transform: 'rotate(360deg)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+				'spin': 'spin 1s linear infinite'
 			}
 		}
 	},
