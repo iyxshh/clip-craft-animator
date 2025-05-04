@@ -3,14 +3,17 @@ import { useRef, useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Play, Download, Video } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
 
 interface VideoPreviewProps {
   videoUrl: string | null;
   isProcessed: boolean;
+  isProcessing?: boolean;
+  processingProgress?: number;
 }
 
-const VideoPreview = ({ videoUrl, isProcessed }: VideoPreviewProps) => {
+const VideoPreview = ({ videoUrl, isProcessed, isProcessing = false, processingProgress = 0 }: VideoPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const { toast } = useToast();
@@ -52,7 +55,18 @@ const VideoPreview = ({ videoUrl, isProcessed }: VideoPreviewProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {videoUrl ? (
+        {isProcessing && (
+          <div className="flex flex-col items-center justify-center bg-black/20 aspect-video rounded-md p-4">
+            <Video className="h-16 w-16 text-primary animate-pulse mb-4" />
+            <p className="text-muted-foreground text-center mb-4">
+              Processing your video...
+            </p>
+            <Progress value={processingProgress} className="w-full max-w-md" />
+            <p className="text-xs text-muted-foreground mt-2">{processingProgress}% complete</p>
+          </div>
+        )}
+        
+        {!isProcessing && videoUrl ? (
           <div className="relative aspect-video bg-black/20 rounded-md overflow-hidden">
             <video
               ref={videoRef}
@@ -63,26 +77,26 @@ const VideoPreview = ({ videoUrl, isProcessed }: VideoPreviewProps) => {
               onPause={() => setIsPlaying(false)}
             />
           </div>
-        ) : (
+        ) : !isProcessing ? (
           <div className="flex flex-col items-center justify-center bg-black/20 aspect-video rounded-md p-4">
             <Video className="h-16 w-16 text-muted-foreground opacity-20 mb-4" />
             <p className="text-muted-foreground text-center">
               Process your video to see a preview here
             </p>
           </div>
-        )}
+        ) : null}
       </CardContent>
       <CardFooter className="flex gap-2 justify-between">
         <Button
           variant="secondary"
-          disabled={!videoUrl}
+          disabled={!videoUrl || isProcessing}
           onClick={handlePlayPause}
         >
           <Play className="h-4 w-4 mr-2" />
           {isPlaying ? "Pause" : "Play"}
         </Button>
         <Button 
-          disabled={!isProcessed} 
+          disabled={!isProcessed || isProcessing} 
           onClick={handleDownload}
         >
           <Download className="h-4 w-4 mr-2" />

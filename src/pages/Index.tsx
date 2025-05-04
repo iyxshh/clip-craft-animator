@@ -5,7 +5,8 @@ import MediaUploader from "@/components/MediaUploader";
 import ScriptEditor from "@/components/ScriptEditor";
 import VideoPreview from "@/components/VideoPreview";
 import FFmpegNote from "@/components/FFmpegNote";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { ffmpegService } from "@/services/ffmpegService";
 
 const Index = () => {
   const [uploadedMedia, setUploadedMedia] = useState<File[]>([]);
@@ -13,18 +14,25 @@ const Index = () => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isProcessed, setIsProcessed] = useState<boolean>(false);
+  const [processingProgress, setProcessingProgress] = useState<number>(0);
   
   const { toast } = useToast();
 
   const handleMediaUpload = (files: File[]) => {
     setUploadedMedia(files);
+    
+    // Reset state when new files are uploaded
+    if (isProcessed) {
+      setIsProcessed(false);
+      setVideoUrl(null);
+    }
   };
 
   const handleScriptChange = (script: string) => {
     setFfmpegScript(script);
   };
 
-  const handleProcessVideo = () => {
+  const handleProcessVideo = async () => {
     if (uploadedMedia.length === 0) {
       toast({
         title: "No media files",
@@ -44,49 +52,44 @@ const Index = () => {
     }
 
     setIsProcessing(true);
+    setProcessingProgress(0);
     
-    // Simulate processing delay
-    setTimeout(() => {
-      // In a real app, we would process the video using FFmpeg.js or WebAssembly
-      // For this demo, we'll just set a sample video URL
-      const sampleFile = uploadedMedia.find(file => file.type.startsWith('video/'));
+    try {
+      // Load FFmpeg
+      await ffmpegService.load();
+      setProcessingProgress(20);
+
+      // Process the media
+      toast({
+        title: "Processing Started",
+        description: "FFmpeg is processing your media. This may take a moment...",
+      });
       
-      if (sampleFile) {
-        const url = URL.createObjectURL(sampleFile);
-        setVideoUrl(url);
-        setIsProcessed(true);
-      } else {
-        // Create a canvas element to render a simple video with the first image
-        const image = new Image();
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        if (ctx && uploadedMedia[0].type.startsWith('image/')) {
-          canvas.width = 640;
-          canvas.height = 480;
-          
-          image.onload = () => {
-            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob((blob) => {
-              if (blob) {
-                const url = URL.createObjectURL(blob);
-                setVideoUrl(url);
-                setIsProcessed(true);
-              }
-            }, 'image/jpeg');
-          };
-          
-          image.src = URL.createObjectURL(uploadedMedia[0]);
-        }
-      }
+      // Process the video
+      const outputBlob = await ffmpegService.processMedia(uploadedMedia, ffmpegScript);
+      setProcessingProgress(90);
       
-      setIsProcessing(false);
+      // Create URL for the processed video
+      const url = URL.createObjectURL(outputBlob);
+      setVideoUrl(url);
+      setIsProcessed(true);
+      setProcessingProgress(100);
       
       toast({
         title: "Processing Complete",
         description: "Your video has been processed. You can now preview and download it.",
       });
-    }, 2500);
+    } catch (error) {
+      console.error("Error processing video:", error);
+      
+      toast({
+        title: "Processing Error",
+        description: error instanceof Error ? error.message : "An unknown error occurred while processing your video.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -104,6 +107,8 @@ const Index = () => {
         <VideoPreview 
           videoUrl={videoUrl}
           isProcessed={isProcessed}
+          isProcessing={isProcessing}
+          processingProgress={processingProgress}
         />
         
         <FFmpegNote />
