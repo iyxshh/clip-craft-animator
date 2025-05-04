@@ -5,9 +5,22 @@ import { fetchFile, toBlobURL } from '@ffmpeg/util';
 class FFmpegService {
   private ffmpeg: FFmpeg | null = null;
   private loaded = false;
+  private isCompatible: boolean = true;
+
+  constructor() {
+    // Check for SharedArrayBuffer support at initialization
+    this.isCompatible = typeof SharedArrayBuffer !== 'undefined';
+  }
+
+  isFFmpegSupported(): boolean {
+    return this.isCompatible;
+  }
 
   async load() {
     if (this.loaded) return;
+    if (!this.isCompatible) {
+      throw new Error('Your browser does not support SharedArrayBuffer, which is required for FFmpeg');
+    }
 
     this.ffmpeg = new FFmpeg();
     

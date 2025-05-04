@@ -1,16 +1,23 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Info, AlertTriangle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Info, AlertTriangle, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { ffmpegService } from "@/services/ffmpegService";
 
 const FFmpegNote = () => {
   const [isCompatible, setIsCompatible] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Check for SharedArrayBuffer support which is required for FFmpeg.wasm
-    const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
+    const hasSharedArrayBuffer = ffmpegService.isFFmpegSupported();
     setIsCompatible(hasSharedArrayBuffer);
   }, []);
+
+  const handleOpenCompatibleBrowser = () => {
+    window.open('https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#browser_compatibility', '_blank');
+  };
 
   return (
     <Card className={`mt-8 ${isCompatible === false ? 'bg-destructive/10 border-destructive/20' : 'bg-primary/5 border-primary/20'}`}>
@@ -26,14 +33,33 @@ const FFmpegNote = () => {
       </CardHeader>
       <CardContent className="text-sm">
         {isCompatible === false && (
-          <div className="mb-3 p-2 bg-destructive/10 rounded">
-            <p className="font-medium text-destructive">
-              Your browser may not fully support FFmpeg.wasm
-            </p>
-            <p className="text-xs mt-1">
-              For best experience, use Chrome, Edge or Firefox with "SharedArrayBuffer" support enabled.
-            </p>
-          </div>
+          <Alert variant="destructive" className="mb-3">
+            <AlertTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Browser Compatibility Issue
+            </AlertTitle>
+            <AlertDescription className="mt-2">
+              <p className="mb-2">
+                Your browser doesn't support <strong>SharedArrayBuffer</strong> which is required for FFmpeg.wasm to work.
+              </p>
+              <p className="mb-3">
+                Please try one of these solutions:
+              </p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Use Chrome, Edge, or Firefox (latest versions)</li>
+                <li>Enable "cross-origin isolation" if using a compatible browser</li>
+              </ul>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-3"
+                onClick={handleOpenCompatibleBrowser}
+              >
+                <ExternalLink className="w-3 h-3 mr-1" />
+                Learn More
+              </Button>
+            </AlertDescription>
+          </Alert>
         )}
         
         <p className="mb-2">

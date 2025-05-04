@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import MediaUploader from "@/components/MediaUploader";
 import ScriptEditor from "@/components/ScriptEditor";
@@ -15,8 +15,14 @@ const Index = () => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isProcessed, setIsProcessed] = useState<boolean>(false);
   const [processingProgress, setProcessingProgress] = useState<number>(0);
+  const [isCompatible, setIsCompatible] = useState<boolean | null>(null);
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check browser compatibility on component mount
+    setIsCompatible(ffmpegService.isFFmpegSupported());
+  }, []);
 
   const handleMediaUpload = (files: File[]) => {
     setUploadedMedia(files);
@@ -33,6 +39,15 @@ const Index = () => {
   };
 
   const handleProcessVideo = async () => {
+    if (!isCompatible) {
+      toast({
+        title: "Browser Compatibility Issue",
+        description: "Your browser doesn't support SharedArrayBuffer which is required for FFmpeg. Try using Chrome or Edge.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (uploadedMedia.length === 0) {
       toast({
         title: "No media files",
@@ -55,16 +70,6 @@ const Index = () => {
     setProcessingProgress(0);
     
     try {
-      // Check for SharedArrayBuffer support
-      if (typeof SharedArrayBuffer === 'undefined') {
-        toast({
-          title: "Browser Compatibility Issue",
-          description: "Your browser doesn't support SharedArrayBuffer which is required for FFmpeg. Try using Chrome or Edge.",
-          variant: "destructive",
-        });
-        throw new Error("Browser doesn't support SharedArrayBuffer");
-      }
-      
       // Load FFmpeg with progress updates
       toast({
         title: "Loading FFmpeg",
@@ -116,6 +121,7 @@ const Index = () => {
             onScriptChange={handleScriptChange}
             onProcessVideo={handleProcessVideo}
             isProcessing={isProcessing}
+            isCompatible={isCompatible}
           />
         </div>
         <VideoPreview 
