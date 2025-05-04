@@ -11,15 +11,20 @@ class FFmpegService {
 
     this.ffmpeg = new FFmpeg();
     
-    // Load FFmpeg WASM binary
-    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd';
-    await this.ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-    });
-    
-    this.loaded = true;
-    console.log('FFmpeg loaded');
+    try {
+      // Load FFmpeg WASM binary
+      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd';
+      await this.ffmpeg.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      });
+      
+      this.loaded = true;
+      console.log('FFmpeg loaded successfully');
+    } catch (error) {
+      console.error('Failed to load FFmpeg:', error);
+      throw new Error('Failed to load FFmpeg. Check console for details.');
+    }
   }
 
   async processMedia(files: File[], ffmpegScript: string): Promise<Blob> {

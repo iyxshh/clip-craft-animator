@@ -1,17 +1,41 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Info } from "lucide-react";
+import { Info, AlertTriangle } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const FFmpegNote = () => {
+  const [isCompatible, setIsCompatible] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check for SharedArrayBuffer support which is required for FFmpeg.wasm
+    const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
+    setIsCompatible(hasSharedArrayBuffer);
+  }, []);
+
   return (
-    <Card className="mt-8 bg-primary/5 border-primary/20">
+    <Card className={`mt-8 ${isCompatible === false ? 'bg-destructive/10 border-destructive/20' : 'bg-primary/5 border-primary/20'}`}>
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <Info className="h-4 w-4" />
+          {isCompatible === false ? (
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+          ) : (
+            <Info className="h-4 w-4" />
+          )}
           FFmpeg Processing Note
         </CardTitle>
       </CardHeader>
       <CardContent className="text-sm">
+        {isCompatible === false && (
+          <div className="mb-3 p-2 bg-destructive/10 rounded">
+            <p className="font-medium text-destructive">
+              Your browser may not fully support FFmpeg.wasm
+            </p>
+            <p className="text-xs mt-1">
+              For best experience, use Chrome, Edge or Firefox with "SharedArrayBuffer" support enabled.
+            </p>
+          </div>
+        )}
+        
         <p className="mb-2">
           This web app uses FFmpeg.wasm to process videos entirely in your browser:
         </p>

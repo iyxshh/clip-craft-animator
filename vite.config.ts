@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     rollupOptions: {
-      external: ['@ffmpeg/core']
+      external: ['@ffmpeg/core', '@ffmpeg/ffmpeg', '@ffmpeg/util']
     }
   }
 }));
