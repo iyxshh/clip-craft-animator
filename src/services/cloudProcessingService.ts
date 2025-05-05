@@ -21,6 +21,7 @@ class CloudProcessingService {
     // Generate a job ID
     const jobId = uuidv4();
     const fileName = files[0]?.name || `processed_video_${Date.now()}.mp4`;
+    const processedFileName = `processed_${fileName}`;
     
     try {
       // Create a processing job record in the database
@@ -45,7 +46,9 @@ class CloudProcessingService {
       if (uploadError) throw new Error(`Failed to upload file: ${uploadError.message}`);
       
       // In a real implementation, this would trigger a serverless function
-      // For simulation, we'll directly process and update status
+      // to process the video with FFmpeg on the server-side
+      // For simulation, we'll update progress and later return a processed file
+      
       return new Promise((resolve, reject) => {
         let progress = 0;
         
@@ -69,22 +72,47 @@ class CloudProcessingService {
           try {
             clearInterval(progressInterval);
             
-            // For demo, we'll use the original file as the "processed" result
-            const resultPath = `results/${jobId}/${fileName}`;
-            
-            // Copy the uploaded file to the results folder (simulating processing)
-            const { error: copyError } = await supabase
+            // Get the original file URL to "process" it
+            const { data: fileData } = await supabase
               .storage
               .from('videos')
-              .copy(uploadPath, resultPath);
+              .createSignedUrl(uploadPath, 60); // 60 seconds signed URL
               
-            if (copyError) throw copyError;
+            if (!fileData?.signedUrl) {
+              throw new Error('Could not generate signed URL for the original file');
+            }
+            
+            // For demo purposes, we'll fetch the original file and use it 
+            // In a real implementation, this would be processed via FFmpeg on the server
+            const originalFileResponse = await fetch(fileData.signedUrl);
+            const originalFile = await originalFileResponse.blob();
+            
+            // In a real implementation, this would be the processed file from FFmpeg
+            // For now, we'll use the original file but with the correct mimetype
+            // Create a processed file with the right mimetype
+            const resultPath = `results/${jobId}/${processedFileName}`;
+            
+            // Upload the "processed" file
+            const { error: processedError } = await supabase
+              .storage
+              .from('videos')
+              .upload(resultPath, originalFile, {
+                contentType: 'video/mp4'
+              });
+              
+            if (processedError) {
+              throw new Error(`Failed to upload processed file: ${processedError.message}`);
+            }
             
             // Get a public URL for the processed file
             const { data: publicUrlData } = supabase
               .storage
               .from('videos')
               .getPublicUrl(resultPath);
+              
+            if (!publicUrlData?.publicUrl) {
+              throw new Error('Could not generate public URL for the processed file');
+            }
               
             // Update job status to completed
             await supabase
@@ -101,11 +129,11 @@ class CloudProcessingService {
               .insert({
                 job_id: jobId,
                 storage_path: resultPath,
-                file_name: fileName,
-                file_size: files[0].size
+                file_name: processedFileName,
+                file_size: originalFile.size
               });
             
-            // Download the file to return as Blob
+            // Download the processed file to return as Blob
             const response = await fetch(publicUrlData.publicUrl);
             const blob = await response.blob();
             resolve(blob);
