@@ -9,7 +9,80 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      processed_videos: {
+        Row: {
+          created_at: string | null
+          duration: number | null
+          file_name: string
+          file_size: number | null
+          id: string
+          job_id: string
+          storage_path: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration?: number | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          job_id: string
+          storage_path?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration?: number | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          job_id?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processed_videos_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "processing_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_jobs: {
+        Row: {
+          created_at: string | null
+          error: string | null
+          id: string
+          processing_mode: string
+          progress: number | null
+          script: string
+          status: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          processing_mode?: string
+          progress?: number | null
+          script: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          processing_mode?: string
+          progress?: number | null
+          script?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

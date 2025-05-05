@@ -4,10 +4,12 @@ import Header from "@/components/Header";
 import MediaUploader from "@/components/MediaUploader";
 import ScriptEditor from "@/components/ScriptEditor";
 import VideoPreview from "@/components/VideoPreview";
+import ProcessingHistory from "@/components/ProcessingHistory";
 import FFmpegNote from "@/components/FFmpegNote";
 import { useToast } from "@/hooks/use-toast";
 import { ffmpegService } from "@/services/ffmpegService";
 import { cloudProcessingService } from "@/services/cloudProcessingService";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   const [uploadedMedia, setUploadedMedia] = useState<File[]>([]);
@@ -18,6 +20,7 @@ const Index = () => {
   const [processingProgress, setProcessingProgress] = useState<number>(0);
   const [isCompatible, setIsCompatible] = useState<boolean | null>(null);
   const [processingMode, setProcessingMode] = useState<string>("local");
+  const [activeTab, setActiveTab] = useState<string>("process");
   
   const { toast } = useToast();
 
@@ -85,21 +88,8 @@ const Index = () => {
           description: "Your media is being processed in the cloud. This may take a moment...",
         });
         
-        // Simulate progress updates for cloud processing
-        const progressInterval = setInterval(() => {
-          setProcessingProgress(prev => {
-            const newProgress = prev + 10;
-            if (newProgress >= 90) {
-              clearInterval(progressInterval);
-              return 90;
-            }
-            return newProgress;
-          });
-        }, 500);
-        
-        // Process via cloud service
+        // Process via cloud service with Supabase
         outputBlob = await cloudProcessingService.processMedia(uploadedMedia, ffmpegScript);
-        clearInterval(progressInterval);
         setProcessingProgress(100);
       } else {
         // Use local processing with FFmpeg.wasm
@@ -147,24 +137,37 @@ const Index = () => {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1 container py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <MediaUploader onMediaUpload={handleMediaUpload} />
-          <ScriptEditor 
-            onScriptChange={handleScriptChange}
-            onProcessVideo={handleProcessVideo}
-            isProcessing={isProcessing}
-            isCompatible={isCompatible}
-          />
-        </div>
-        <VideoPreview 
-          videoUrl={videoUrl}
-          isProcessed={isProcessed}
-          isProcessing={isProcessing}
-          processingProgress={processingProgress}
-          processingMode={processingMode}
-        />
-        
-        <FFmpegNote />
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList className="grid grid-cols-2 w-[400px] mb-4">
+            <TabsTrigger value="process">Process Video</TabsTrigger>
+            <TabsTrigger value="history">Processing History</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="process" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <MediaUploader onMediaUpload={handleMediaUpload} />
+              <ScriptEditor 
+                onScriptChange={handleScriptChange}
+                onProcessVideo={handleProcessVideo}
+                isProcessing={isProcessing}
+                isCompatible={isCompatible}
+              />
+            </div>
+            <VideoPreview 
+              videoUrl={videoUrl}
+              isProcessed={isProcessed}
+              isProcessing={isProcessing}
+              processingProgress={processingProgress}
+              processingMode={processingMode}
+            />
+            
+            <FFmpegNote />
+          </TabsContent>
+          
+          <TabsContent value="history">
+            <ProcessingHistory />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
