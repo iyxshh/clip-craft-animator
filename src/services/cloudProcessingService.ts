@@ -41,7 +41,7 @@ class CloudProcessingService {
           console.error('Cloud processing error:', error);
           reject(error);
         }
-      }, this.SIMULATION_DURATION);
+      }, CloudProcessingService.SIMULATION_DURATION);
     });
   }
 
