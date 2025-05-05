@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { History, Download, Play, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { cloudProcessingService } from "@/services/cloudProcessingService";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProcessingJob {
   id: string;
@@ -24,6 +26,7 @@ const ProcessingHistory = () => {
   const [jobs, setJobs] = useState<ProcessingJob[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const loadHistory = async () => {
     setIsLoading(true);
@@ -42,8 +45,10 @@ const ProcessingHistory = () => {
   };
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    if (user) {
+      loadHistory();
+    }
+  }, [user]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -63,20 +68,24 @@ const ProcessingHistory = () => {
     return date.toLocaleString();
   };
 
-  const handlePlayVideo = (storageUrl: string) => {
-    // Get a public URL for the file
-    const { data } = supabase
-      .storage
-      .from('videos')
-      .getPublicUrl(storageUrl);
-      
-    if (data?.publicUrl) {
-      // Open the video in a new tab
-      window.open(data.publicUrl, '_blank');
-    } else {
+  const handlePlayVideo = async (storageUrl: string) => {
+    try {
+      // Get a public URL for the file
+      const { data } = supabase
+        .storage
+        .from('videos')
+        .getPublicUrl(storageUrl);
+        
+      if (data?.publicUrl) {
+        // Open the video in a new tab
+        window.open(data.publicUrl, '_blank');
+      } else {
+        throw new Error("Unable to generate playback URL");
+      }
+    } catch (error) {
       toast({
         title: "Playback Error",
-        description: "Unable to play this video. The file may no longer exist.",
+        description: error instanceof Error ? error.message : "Unable to play this video. The file may no longer exist.",
         variant: "destructive",
       });
     }
@@ -114,6 +123,28 @@ const ProcessingHistory = () => {
       });
     }
   };
+
+  // Display a message if not logged in
+  if (!user) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5 text-primary" />
+            Processing History
+          </CardTitle>
+          <CardDescription>
+            View your previous video processing jobs
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Please log in to view your processing history.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">

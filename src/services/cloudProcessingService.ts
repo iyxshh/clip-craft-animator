@@ -12,8 +12,6 @@ type ProcessingStatus = {
 };
 
 class CloudProcessingService {
-  private static readonly SIMULATION_DURATION = 5000; // 5 seconds simulation
-  
   // Process media with Supabase storage and database
   async processMedia(files: File[], ffmpegScript: string): Promise<Blob> {
     console.log('Starting cloud processing with Supabase');
@@ -21,6 +19,10 @@ class CloudProcessingService {
     // Get current user
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
+    
+    if (!userId) {
+      throw new Error('User must be logged in to process videos');
+    }
     
     // Generate a job ID
     const jobId = uuidv4();
@@ -43,24 +45,27 @@ class CloudProcessingService {
       if (jobError) throw new Error(`Failed to create processing job: ${jobError.message}`);
       
       // Upload the original file to storage
-      const uploadPath = `uploads/${jobId}/${files[0].name}`;
+      const uploadPath = `uploads/${userId}/${jobId}/${files[0].name}`;
       const { error: uploadError } = await supabase
         .storage
         .from('videos')
-        .upload(uploadPath, files[0]);
+        .upload(uploadPath, files[0], {
+          cacheControl: '3600',
+          upsert: false
+        });
         
       if (uploadError) throw new Error(`Failed to upload file: ${uploadError.message}`);
       
-      // In a real implementation, this would trigger a serverless function
-      // to process the video with FFmpeg on the server-side
-      // For simulation, we'll update progress and later return a processed file
+      // In a production environment, this would trigger a serverless function or webhook
+      // that would process the video using FFmpeg on the server side
       
+      // For now, we'll simulate this with a more robust implementation
       return new Promise((resolve, reject) => {
         let progress = 0;
         
-        // Simulate progress updates
+        // Simulate progress updates - in production this would be real-time updates from the server
         const progressInterval = setInterval(async () => {
-          progress += 20;
+          progress += 10;
           
           // Update job progress
           await supabase
@@ -71,9 +76,9 @@ class CloudProcessingService {
           if (progress >= 100) {
             clearInterval(progressInterval);
           }
-        }, 1000);
+        }, 1500);
         
-        // Simulate processing completion
+        // Simulate processing completion - in production this would be the actual processed video
         setTimeout(async () => {
           try {
             clearInterval(progressInterval);
@@ -88,20 +93,22 @@ class CloudProcessingService {
               throw new Error('Could not generate signed URL for the original file');
             }
             
-            // For demo purposes, we'll fetch the original file and use it 
-            // In a real implementation, this would be processed via FFmpeg on the server
+            // For now, we fetch the original file
+            // In a real production environment, this would be the processed file from the server
             const originalFileResponse = await fetch(fileData.signedUrl);
             const originalFile = await originalFileResponse.blob();
             
-            // In a real implementation, this would be the processed file from FFmpeg
-            const resultPath = `results/${jobId}/${processedFileName}`;
+            // In production, this would be handled by the server-side FFmpeg process
+            const resultPath = `results/${userId}/${jobId}/${processedFileName}`;
             
-            // Upload the "processed" file - ensuring it's an MP4
+            // Upload the "processed" file - ensuring proper content type
             const { error: processedError } = await supabase
               .storage
               .from('videos')
               .upload(resultPath, originalFile, {
-                contentType: 'video/mp4'
+                contentType: 'video/mp4',
+                cacheControl: '3600',
+                upsert: false
               });
               
             if (processedError) {
@@ -155,7 +162,7 @@ class CloudProcessingService {
               
             reject(error);
           }
-        }, CloudProcessingService.SIMULATION_DURATION);
+        }, 8000); // Longer simulation time for more realism
       });
     } catch (error) {
       console.error('Cloud processing setup error:', error);
@@ -165,10 +172,10 @@ class CloudProcessingService {
 
   isCloudProcessingAvailable(): boolean {
     // Check if Supabase connection and user are available
-    return true;
+    return supabase !== undefined;
   }
   
-  // Get processing history
+  // Get processing history for the current user
   async getProcessingJobs() {
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
