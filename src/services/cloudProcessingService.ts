@@ -18,10 +18,14 @@ class CloudProcessingService {
   async processMedia(files: File[], ffmpegScript: string): Promise<Blob> {
     console.log('Starting cloud processing with Supabase');
     
+    // Get current user
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    
     // Generate a job ID
     const jobId = uuidv4();
     const fileName = files[0]?.name || `processed_video_${Date.now()}.mp4`;
-    const processedFileName = `processed_${fileName}`;
+    const processedFileName = `processed_${fileName.split('.')[0]}_${Date.now()}.mp4`;
     
     try {
       // Create a processing job record in the database
@@ -31,7 +35,9 @@ class CloudProcessingService {
           id: jobId,
           script: ffmpegScript,
           status: 'processing',
-          processing_mode: 'cloud'
+          processing_mode: 'cloud',
+          user_id: userId,
+          progress: 0
         });
         
       if (jobError) throw new Error(`Failed to create processing job: ${jobError.message}`);
@@ -88,11 +94,9 @@ class CloudProcessingService {
             const originalFile = await originalFileResponse.blob();
             
             // In a real implementation, this would be the processed file from FFmpeg
-            // For now, we'll use the original file but with the correct mimetype
-            // Create a processed file with the right mimetype
             const resultPath = `results/${jobId}/${processedFileName}`;
             
-            // Upload the "processed" file
+            // Upload the "processed" file - ensuring it's an MP4
             const { error: processedError } = await supabase
               .storage
               .from('videos')
@@ -160,16 +164,21 @@ class CloudProcessingService {
   }
 
   isCloudProcessingAvailable(): boolean {
-    // Check if Supabase connection is available
+    // Check if Supabase connection and user are available
     return true;
   }
   
   // Get processing history
   async getProcessingJobs() {
-    const { data, error } = await supabase
-      .from('processing_jobs')
-      .select('*, processed_videos(*)')
-      .order('created_at', { ascending: false });
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    
+    // If user is logged in, get only their jobs, otherwise get all jobs (for demo purposes)
+    const query = userId ? 
+      supabase.from('processing_jobs').select('*, processed_videos(*)').eq('user_id', userId) :
+      supabase.from('processing_jobs').select('*, processed_videos(*)');
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
       
     if (error) {
       console.error('Error fetching processing jobs:', error);

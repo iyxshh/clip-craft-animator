@@ -1,1 +1,6 @@
+
 project_id = "yrzuziqvcinexgesayfq"
+
+[storage]
+[storage.videos]
+public = true
